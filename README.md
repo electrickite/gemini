@@ -13,6 +13,8 @@ This project requires the following software to build:
   * C compiler
   * make
   * OpenSSL >= 1.1.0
+  * uriparser
+  * libmagic
 
 Build
 -----
@@ -42,10 +44,10 @@ text.
 
 ### Server
 
-    agena [-p PORT]
+    agena [OPTIONS...] [ROOT_PATH]
 
-Serve the contents of the current directory using the gemini protocol on PORT.
-The default port is 1965.
+Serve the contents of ROOT_PATH (defaults to current directory) using the gemini
+protocol. The default port is 1965.
 
 License and Copyright
 ---------------------

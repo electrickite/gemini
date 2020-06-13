@@ -9,9 +9,9 @@ MANPREFIX = $(PREFIX)/share/man
 CC = cc
 LD = ld
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -Werror -Wno-unused-parameter -Os -s
-LDLIBS =
+LDLIBS = -lssl -lcrypto -lmagic -luriparser
 
-DEPS = version.h
+DEPS = version.h protocol.h
 SERVER_OBJ = server.o
 CLIENT_OBJ = client.o
 OBJ = $(SERVER_OBJ) $(CLIENT_OBJ)
