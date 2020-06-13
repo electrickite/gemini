@@ -200,6 +200,22 @@ static char *uripath(UriUriA *uri) {
 	return path;
 }
 
+static bool valid_hostname(UriTextRangeA *hostText) {
+	const char *delim = ",";
+	char *token;
+
+	if (!hostname) return true;
+
+	token = strtok(hostname, delim);
+	while (token != NULL) {
+		if (uricmp(hostText, token) == 0) {
+			return true;
+		}
+		token = strtok(NULL, delim);
+	}
+	return false;
+}
+
 static void build_header(char *header, const char *status, const char *meta) {
 	if (meta != NULL) {
 		snprintf(header, HEADER_SIZE, "%s %s" LINE_TERM, status, meta);
@@ -210,7 +226,6 @@ static void build_header(char *header, const char *status, const char *meta) {
 
 static void prepare_response(char *header, Document *file, Client client) {
 	UriUriA uri;
-	//UriTextRangeA *uri_part;
 	const char *uriErrorPos;
 	header[0] = '\0';
 
@@ -224,7 +239,7 @@ static void prepare_response(char *header, Document *file, Client client) {
 	if (&uri.hostText == NULL || urilen(&uri.hostText) == 0) {
 		build_header(header, STATUS_BAD_REQUEST, "No host in request");
 		goto cleanup;
-	} else if (hostname && uricmp(&uri.hostText, hostname) != 0) {
+	} else if (!valid_hostname(&uri.hostText)) {
 		build_header(header, STATUS_PROXY_REFUSED, "Will not proxy for requested hostname");
 		goto cleanup;
 	}
@@ -293,8 +308,9 @@ Options:\n\
     -c PATH      certificate PATH\n\
     -k PATH      private key PATH\n\
     -p PORT      Listen on PORT\n\
-    -n HOSTNAME	 Only serve requests for HOSTNAME\n\
     -i FILENAME  Use FILENAME as directory index\n\
+    -n HOSTNAME	 Only serve requests for HOSTNAME\n\
+                 (multiple hostnames are comma delimited)\n\
 ", PROGNAME);
 }
 
