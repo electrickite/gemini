@@ -1,3 +1,9 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (C) 2020 Corey Hinshaw
+ * Released under the terms of the MIT license.
+ * See LICENSE file for details.
+ */
 #define META_SIZE 1024
 #define URL_SIZE 1024
 #define REQUEST_SIZE 1026

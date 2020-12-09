@@ -51,6 +51,13 @@ protocol. The default port is 1965.
 
 License and Copyright
 ---------------------
-Copyright 2020 Corey Hinshaw
+Copyright (C) 2020 Corey Hinshaw
 
-Licensed under the terms of the MIT license. See the license file for details.
+Licensed under the terms of the MIT license. See the LICENSE file for details.
+
+Portions of the source code are licensed under the Academic Free License
+version 2.0 and are:
+
+Copyright (C) 2003  Red Hat, Inc.
+Copyright (C) 2003  Jonathan Blandford <jrb@alum.mit.edu>
+
