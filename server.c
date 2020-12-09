@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <stdbool.h>
 #include <magic.h>
 #include <sys/socket.h>
@@ -15,6 +16,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <uriparser/Uri.h>
+#include "lib/xdgmime/xdgmime.h"
 #include "version.h"
 #include "protocol.h"
 
@@ -26,8 +28,9 @@
 
 typedef struct Documents {
 	char *path;
-	const char *mime_type;
+	char *mime_type;
 	FILE *fp;
+	struct stat *statbuf;
 } Document;
 
 typedef struct Clients {
@@ -127,9 +130,47 @@ static void read_request(BIO *io, char *req) {
 	req[strcspn(req, LINE_TERM)] = 0;
 }
 
-static void open_file(Document *file, char *req_path) {
+static bool is_gemini_file(char *path) {
+	size_t lenpath = strlen(path);
+	size_t lenext = strlen(EXTENSION_GEMINI);
+	if (lenext >  lenpath) return false;
+
+	return strncmp(path + lenpath - lenext, EXTENSION_GEMINI, lenext) == 0;
+}
+
+static void set_mime_type(Document *file) {
+	const char *mime_type;
+	const char *mime_encoding;
 	magic_t cookie;
-	struct stat stat_info;
+	size_t mimelen;
+
+	if (is_gemini_file(file->path)) {
+		mime_type = MIME_GEMINI;
+	} else {
+		mime_type = xdg_mime_get_mime_type_for_file(file->path, file->statbuf);
+	}
+
+	if (xdg_mime_media_type_equal(mime_type, "text/")) {
+		cookie = magic_open(MAGIC_MIME_ENCODING);
+		magic_load(cookie, NULL);
+		mime_encoding = magic_file(cookie, file->path);
+		if (strcasecmp(mime_encoding, "us-ascii") == 0) {
+			mime_encoding = "utf-8";
+		}
+
+		mimelen = strlen(mime_type) + strlen(mime_encoding) + 11;
+		file->mime_type = malloc(mimelen);
+		strcpy(file->mime_type, mime_type);
+		strcat(file->mime_type, "; charset=");
+		strcat(file->mime_type, mime_encoding);
+
+		magic_close(cookie);
+	} else {
+		file->mime_type = strdup(mime_type);
+	}
+}
+
+static void open_file(Document *file, char *req_path) {
 	bool file_in_root;
 	char *resolved_path;
 	size_t pathlen = strlen(root_path) + strlen(req_path) + 1;
@@ -139,13 +180,13 @@ static void open_file(Document *file, char *req_path) {
 	strcat(full_path, req_path);
 
 	resolved_path = realpath(full_path, NULL);
-	if (resolved_path && stat(resolved_path, &stat_info) >= 0) {
-		if (S_ISDIR(stat_info.st_mode)) {
+	if (resolved_path && stat(resolved_path, file->statbuf) >= 0) {
+		if (S_ISDIR(file->statbuf->st_mode)) {
 			pathlen = strlen(resolved_path) + strlen(PATH_SEPARATOR) + strlen(index_file) + 1;
 			resolved_path = realloc(resolved_path, pathlen);
 			strcat(resolved_path, PATH_SEPARATOR);
 			strcat(resolved_path, index_file);
-			if (stat(resolved_path, &stat_info) >= 0 && S_ISREG(stat_info.st_mode)) {
+			if (stat(resolved_path, file->statbuf) >= 0 && S_ISREG(file->statbuf->st_mode)) {
 				file->path = strdup(resolved_path);
 			}
 		} else {
@@ -156,10 +197,7 @@ static void open_file(Document *file, char *req_path) {
 
 	if (file_in_root) {
 		file->fp = fopen(file->path, "rb");
-		cookie = magic_open(MAGIC_MIME);
-		magic_load(cookie, NULL);
-		file->mime_type = strdup(magic_file(cookie, file->path));
-		magic_close(cookie);
+		set_mime_type(file);
 	}
 
 	free(resolved_path);
@@ -267,7 +305,7 @@ static int serve_request(BIO *io, Client client) {
 	int ret = 0;
 	char *buf[BUFSIZ];
 	char header[HEADER_SIZE + 1];
-	Document file = { NULL, NULL, NULL };
+	Document file = { NULL, NULL, NULL, &((struct stat) {0}) };
 
 	prepare_response(header, &file, client);
 	printf("[%s] Response header: %s", client.ip, header);

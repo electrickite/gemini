@@ -1,8 +1,12 @@
-#define REQUEST_SIZE 1024
-#define HEADER_SIZE 1024
+#define META_SIZE 1024
+#define URL_SIZE 1024
+#define REQUEST_SIZE 1026
+#define HEADER_SIZE 1029
 #define LINE_TERM "\r\n"
 
 #define SCHEME_GEMINI "gemini"
+#define EXTENSION_GEMINI ".gemini"
+#define MIME_GEMINI "text/gemini"
 
 #define STATUS_INPUT "10"
 #define STATUS_INPUT_NAME "INPUT"
