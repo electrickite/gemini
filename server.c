@@ -1,3 +1,9 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (C) 2020 Corey Hinshaw
+ * Released under the terms of the MIT license.
+ * See LICENSE file for details.
+ */
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 500
 #include <arpa/inet.h>
