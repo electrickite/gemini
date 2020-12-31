@@ -3,10 +3,12 @@
 #define REQUEST_SIZE 1026
 #define HEADER_SIZE 1029
 #define LINE_TERM "\r\n"
+#define PATH_SEPARATOR "/"
 
-#define SCHEME_GEMINI "gemini"
-#define EXTENSION_GEMINI ".gemini"
-#define MIME_GEMINI "text/gemini"
+#define GEMINI_SCHEME "gemini"
+#define GEMINI_EXTENSION ".gemini"
+#define GEMINI_MIME "text/gemini"
+#define GEMINI_PORT 1965
 
 #define STATUS_INPUT "10"
 #define STATUS_INPUT_NAME "INPUT"

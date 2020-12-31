@@ -1,29 +1,30 @@
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 500
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
-#include <stdio.h>
 #include <limits.h>
+#include <magic.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include <stdbool.h>
-#include <magic.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <arpa/inet.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include <unistd.h>
 #include <uriparser/Uri.h>
+#include "lib/common.h"
+#include "lib/protocol.h"
+#include "lib/uriutil.h"
 #include "lib/xdgmime/xdgmime.h"
 #include "version.h"
-#include "protocol.h"
 
 #define PROGNAME "agena"
 
 #define ESSL_WRITE -1000
-#define PATH_SEPARATOR "/"
 
 
 typedef struct Documents {
@@ -42,7 +43,7 @@ typedef struct Clients {
 static char *root_path = ".";
 static char *cert_path = "cert.pem";
 static char *key_path = "key.pem";
-static unsigned int port = 1965;
+static unsigned int port = GEMINI_PORT;
 static char *hostname = NULL;
 static char *index_file = "index.gemini";
 
@@ -132,10 +133,10 @@ static void read_request(BIO *io, char *req) {
 
 static bool is_gemini_file(char *path) {
 	size_t lenpath = strlen(path);
-	size_t lenext = strlen(EXTENSION_GEMINI);
+	size_t lenext = strlen(GEMINI_EXTENSION);
 	if (lenext >  lenpath) return false;
 
-	return strncmp(path + lenpath - lenext, EXTENSION_GEMINI, lenext) == 0;
+	return strncmp(path + lenpath - lenext, GEMINI_EXTENSION, lenext) == 0;
 }
 
 static void set_mime_type(Document *file) {
@@ -145,7 +146,7 @@ static void set_mime_type(Document *file) {
 	size_t mimelen;
 
 	if (is_gemini_file(file->path)) {
-		mime_type = MIME_GEMINI;
+		mime_type = GEMINI_MIME;
 	} else {
 		mime_type = xdg_mime_get_mime_type_for_file(file->path, file->statbuf);
 	}
@@ -204,40 +205,6 @@ static void open_file(Document *file, char *req_path) {
 	free(full_path);
 }
 
-static int uricmp(UriTextRangeA *range, char *str) {
-	return strncmp(str, range->first, range->afterLast - range->first);
-}
-
-static size_t urilen(UriTextRangeA *range) {
-	return range->afterLast - range->first;
-}
-
-static char *uripath(UriUriA *uri) {
-	size_t sum = 0;
-	size_t sep_len = strlen(PATH_SEPARATOR);
-	size_t seg_len;
-	UriPathSegmentA *segment = uri->pathHead;
-
-	while (segment != NULL) {
-		sum += sep_len + urilen(&segment->text);
-		segment = segment->next;
-	}
-	segment = uri->pathHead;
-	char *path = malloc(sum + 1);
-	char *target = path;
-	path[0] = '\0';
-
-	while (segment != NULL) {
-		strcat(target, PATH_SEPARATOR);
-		target += sep_len;
-		seg_len = urilen(&segment->text);
-		strncat(target, segment->text.first, seg_len);
-		target += seg_len;
-		segment = segment->next;
-	}
-	return path;
-}
-
 static bool valid_hostname(UriTextRangeA *hostText) {
 	const char *delim = ",";
 	char *token;
@@ -281,7 +248,7 @@ static void prepare_response(char *header, Document *file, Client client) {
 		build_header(header, STATUS_PROXY_REFUSED, "Will not proxy for requested hostname");
 		goto cleanup;
 	}
-	if (&uri.scheme != NULL && uricmp(&uri.scheme, SCHEME_GEMINI) != 0) {
+	if (&uri.scheme != NULL && uricmp(&uri.scheme, GEMINI_SCHEME) != 0) {
 		build_header(header, STATUS_PERMANENT_FAILURE, "Unknown URL scheme");
 		goto cleanup;
 	}

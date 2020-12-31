@@ -36,7 +36,7 @@ Use
 ---
 ### Client
 
-    glv URL
+    glv [OPTIONS...] URL
 
 Fetch and display `URL` using the gemini protocol. Gemini files are displayed
 with appropriate formatting and semantics, other files are rendered as plain
